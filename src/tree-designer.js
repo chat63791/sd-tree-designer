@@ -141,6 +141,9 @@ export class TreeDesignerConfig {
     hideLabels=false;
     hidePayoffs=false;
     hideProbabilities=false;
+    bracketComputedPayoffs=false;
+    thickenOnlyCertainBranches=false;
+    hideTerminalProbabilityToEnter=false;
     raw=false;
     preserveFoldingOfNestedSubtrees = true;
 
@@ -491,9 +494,11 @@ export class TreeDesigner {
             })
             .classed('sd-hidden', this.config.hidePayoffs || this.config.raw)
             .text((d, i)=> {
-                var val = d
-
-                return val!==null ? (isNaN(val) ? val : '[' + self.config.payoffNumberFormatter(val, i) + ']'): ''
+                var val = d;
+                if (val === null) return '';
+                if (isNaN(val)) return val;
+                var text = self.config.payoffNumberFormatter(val, i);
+                return self.config.bracketComputedPayoffs ? '[' + text + ']' : text;
             });
         this.attachPayoffTooltip(payoffTspansM);
 
@@ -519,7 +524,10 @@ export class TreeDesigner {
             })
             .classed('sd-hidden', this.config.hidePayoffs || this.config.raw)
             .text((val, i)=> {
-                return val!==null ? (isNaN(val) ? val : '[' + self.config.payoffNumberFormatter(val, i) + ']'): ''
+                if (val === null) return '';
+                if (isNaN(val)) return val;
+                var text = self.config.payoffNumberFormatter(val, i);
+                return self.config.bracketComputedPayoffs ? '[' + text + ']' : text;
             });
 
         this.attachPayoffTooltip(aggregatedPayoffTspansM, 'aggregatedPayoff');
@@ -535,7 +543,7 @@ export class TreeDesigner {
         var probabilityToEnter = nodesMerge.select('text.probability-to-enter')
             .text(d=>{
                 var val = d.displayValue('probabilityToEnter');
-                if (d instanceof model.TerminalNode) return '';
+                if (self.config.hideTerminalProbabilityToEnter && d instanceof model.TerminalNode) return '';
                 return val!==null ? (isNaN(val) ? val : self.config.probabilityNumberFormatter(val)): ''
             })
             .classed('sd-hidden', this.config.hideProbabilities || this.config.raw);
@@ -621,7 +629,11 @@ export class TreeDesigner {
         if (p === null || p === undefined) return false;
         var v = (typeof p === 'object' && p.n !== undefined && p.d !== undefined) ? (p.s * p.n / p.d) : Number(p);
         return v === 1;
-}
+    }
+
+    isThickBranch(d){
+        return this.config.thickenOnlyCertainBranches ? this.isFullProbability(d) : this.isOptimal(d);
+    }
 
     redrawEdges() {
         var self = this;
@@ -648,7 +660,7 @@ export class TreeDesigner {
 
 
         var optimalClassName = 'optimal';
-        edgesMerge.classed(optimalClassName, (d)=>self.isFullProbability(d));
+        edgesMerge.classed(optimalClassName, (d)=>self.isThickBranch(d));
 
         var edgesMergeT = edgesMerge;
         if(this.transition){
@@ -661,7 +673,7 @@ export class TreeDesigner {
             // .attr("stroke-width", 2)
             .attr("fill", "none")
             .attr("marker-end", function(d) {
-                var suffix = d3.select(this.parentNode).classed('selected') ? '-selected' : (self.isFullProbability(d)?'-optimal':'');
+                var suffix = d3.select(this.parentNode).classed('selected') ? '-selected' : (self.isThickBranch(d)?'-optimal':'');
                 return "url(#arrow"+ suffix+")"
             });
             // .attr("shape-rendering", "optimizeQuality")
@@ -1335,7 +1347,7 @@ export class TreeDesigner {
     }
 
     clearSelection(){
-        this.mainGroup.selectAll(".edge.selected").select('path').attr("marker-end", d => "url(#arrow"+(this.isFullProbability(d)?'-optimal':'')+")")
+        this.mainGroup.selectAll(".edge.selected").select('path').attr("marker-end", d => "url(#arrow"+(this.isThickBranch(d)?'-optimal':'')+")")
         this.mainGroup.selectAll(".selected").classed('selected', false);
         this.config.onSelectionCleared();
     }
