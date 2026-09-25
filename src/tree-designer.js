@@ -141,6 +141,7 @@ export class TreeDesignerConfig {
     hideLabels=false;
     hidePayoffs=false;
     hideProbabilities=false;
+    hideTerminalProbabilityToEnter=false;
     raw=false;
     preserveFoldingOfNestedSubtrees = true;
 
@@ -535,6 +536,7 @@ export class TreeDesigner {
         var probabilityToEnter = nodesMerge.select('text.probability-to-enter')
             .text(d=>{
                 var val = d.displayValue('probabilityToEnter');
+                if (self.config.hideTerminalProbabilityToEnter && d instanceof model.TerminalNode) return '';
                 return val!==null ? (isNaN(val) ? val : self.config.probabilityNumberFormatter(val)): ''
             })
             .classed('sd-hidden', this.config.hideProbabilities || this.config.raw);
