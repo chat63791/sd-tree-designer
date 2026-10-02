@@ -144,6 +144,7 @@ export class TreeDesignerConfig {
     bracketComputedPayoffs=false;
     thickenOnlyCertainBranches=false;
     hideTerminalProbabilityToEnter=false;
+    rollbackPayoffs=false;
     raw=false;
     preserveFoldingOfNestedSubtrees = true;
 
